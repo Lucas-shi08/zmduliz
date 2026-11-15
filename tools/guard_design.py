@@ -210,7 +210,8 @@ def cmd_check():
     print('如果只是想改文案，请撤销下列改动。\n')
     for line in problems:
         print(line)
-    print('\n共 %d 组问题。' % len(problems))
+    groups = sum(1 for line in problems if not line.startswith('   '))
+    print('\n共 %d 组问题。' % groups)
     return 1
 
 
