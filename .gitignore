@@ -1,0 +1,22 @@
+# ── local-only, never commit ─────────────────────────────────────────────
+# Headless-Chrome profile used for screenshots (172 MB, machine specific,
+# may contain cookies / history)
+.chromeprof/
+
+# WorkBuddy project data: local notes and memory files
+.workbuddy/
+
+# scratch output from local probes
+_probe.txt
+_free.txt
+
+# ── tooling noise ───────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# ── OS ──────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
