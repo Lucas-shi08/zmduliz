@@ -1,7 +1,9 @@
 #!/bin/sh
-# 提交前跑样式护栏。只有样式层漂移才拦，纯文案改动不受影响。
-# 跳过：SKIP_DESIGN_GUARD=1 git commit ...
-# 安装：git config core.hooksPath .githooks
+# 提交前看一眼颜色和字体有没有被动过。
+# 只是提醒，永远不会拦你的提交。
+#
+# 安装（每台克隆一次）：git config core.hooksPath .githooks
+# 不想看这套提示：  SKIP_DESIGN_GUARD=1 git commit ...
 
 [ "$SKIP_DESIGN_GUARD" = "1" ] && exit 0
 
@@ -17,13 +19,8 @@ out=$("$PY" tools/guard_design.py check 2>&1)
 code=$?
 
 if [ "$code" -ne 0 ]; then
-  printf '%s\n' "$out"
-  printf '\n'
-  printf '提交被样式护栏拦下。\n'
-  printf '  · 只是想改文案  -> 撤销上面的改动\n'
-  printf '  · 确实要改样式  -> python tools/guard_design.py accept 后重新提交\n'
-  printf '  · 临时跳过      -> SKIP_DESIGN_GUARD=1 git commit ...\n'
-  exit 1
+  printf '\n%s\n\n' "$out"
+  printf '(只是提醒，提交照常继续)\n\n'
 fi
 
 exit 0

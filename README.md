@@ -45,33 +45,33 @@ AGENTS.md              给 AI 的作业说明
 | 改文案 | 直接改 HTML 里的文字，样式不受影响 |
 | 换图片 | 新图存 `assets/img/opt/`，WebP、最长边 ≤1200、**保持原比例** |
 | 改导航 | 改 `tools/nav.py`，然后 `python tools/nav.py`；不要手改页面里的导航 |
-| 改颜色 / 字体 / 间距 | 先读 `DESIGN-SYSTEM.md`，改 `:root` 令牌，然后跑 `accept` 刷新基线 |
+| 改颜色 / 字体 | 改 `:root` 里的变量，然后 `python tools/guard_design.py accept` 记成新参考 |
+| 调间距 / 字号 / 排版 | 直接改，不用报备 |
 
-## 防止样式被改跑
+## 颜色和调性别跑偏就行
 
-这个仓库自带一道护栏，**随仓库一起走，换机器也生效**：
-
-```bash
-python tools/guard_design.py check    # 退出码 0 = 样式层没被动过
-```
-
-它比对 `_design/baseline.json` 里的三项：样式/脚本文件哈希、42 个设计令牌的值、
-7 个页面内联 `<style>` 的内容哈希。**只改正文文字不会报警**；改了颜色、字体、间距、圆角，或者引入了外部 CDN，
-会立刻列出哪一项从什么变成了什么，退出码 1。
-
-确实想改样式时：
+改内容不用小心翼翼的。唯一值得看一眼的是**颜色和字体有没有被顺手换掉**——这两样一改，整站气质就变了。
 
 ```bash
-python tools/guard_design.py accept   # 刷新基线，相当于"我确认这个视觉变更"
+python tools/guard_design.py check
 ```
 
-可选：装成提交前钩子，漏跑也会拦住。
+颜色或字体变了，它会指出哪一项从什么变成了什么，并返回 1；间距、字号、排版微调只会顺带列一下，不拦人。
+它比对的是 `_design/baseline.json`，随仓库一起走，换机器也有效。
+
+真想要那个颜色变化，把它记成新的参考：
+
+```bash
+python tools/guard_design.py accept
+```
+
+想让提交时顺带提醒一句（**只是提醒，不会挡住提交**）：
 
 ```bash
 git config core.hooksPath .githooks
 ```
 
-（这是每个克隆各自设的，不会自动带过去。）
+（每个克隆各自设一次。）不想看提示：`SKIP_DESIGN_GUARD=1 git commit ...`
 
 ## 换行
 

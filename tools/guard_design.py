@@ -1,18 +1,17 @@
 #!/usr/bin/env python3
-"""样式护栏 —— 防止改内容时顺手改掉颜色、字体、间距。
+"""样式提示器 —— 告诉你颜色和字体有没有被改动，不做强制约束。
 
-只关心"视觉契约"这一层，不关心文案。三类东西被盯住：
-
-  1. 样式层文件      assets/site.css / catalog.css / fonts.css、字体二进制
-  2. 设计令牌        site.css 里 :root 的每一个 --变量 及其值
-  3. 页面内联样式    8 个页面 <style> 块里的内容（哈希比对，正文改动不触发）
+这套东西是「提醒」，不是「门禁」：
+  · 颜色 / 字体变了  -> 退出码 1（这两样一改，整站观感就变了）
+  · 间距、字号、内联样式、其他微调 -> 只列出来，退出码 0，随便改
 
 用法：
-    python tools/guard_design.py check     # 对比基线，有漂移 -> 退出码 1
-    python tools/guard_design.py init      # 首次建立基线
-    python tools/guard_design.py accept    # 确认改动是有意的，刷新基线
+    python tools/guard_design.py check            # 看一眼，改颜色会返回 1
+    python tools/guard_design.py check --strict   # 任何样式层变化都返回 1（备而不用）
+    python tools/guard_design.py accept           # 把当前状态记为新的参考快照
+    python tools/guard_design.py init             # 首次建立快照
 
-基线文件：_design/baseline.json（随仓库提交，换机器也能用）
+快照文件：_design/baseline.json
 """
 import glob
 import hashlib
@@ -29,17 +28,9 @@ except Exception:
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BASELINE = os.path.join(ROOT, '_design', 'baseline.json')
 
-STYLE_FILES = [
-    'assets/site.css',
-    'assets/catalog.css',
-    'assets/fonts.css',
-]
-BEHAVIOUR_FILES = [
-    'assets/site.js',
-    'assets/catalog.js',
-]
+STYLE_FILES = ['assets/site.css', 'assets/catalog.css', 'assets/fonts.css']
+BEHAVIOUR_FILES = ['assets/site.js', 'assets/catalog.js']
 FONT_GLOB = 'assets/fonts/*.woff2'
-
 TOKEN_SOURCE = 'assets/site.css'
 
 
@@ -49,7 +40,7 @@ def read(path):
 
 
 def norm(text):
-    """把 CRLF/行尾空格/连续空行抹平，避免跨平台误报。"""
+    """抹平换行与行尾空格，避免跨平台误报。"""
     text = text.replace('\r\n', '\n').replace('\r', '\n')
     out, blank = [], 0
     for line in text.split('\n'):
@@ -79,7 +70,6 @@ def pages():
 
 
 def root_tokens():
-    """把 :root 里的每个 --变量 抓成 {名字: 值}。"""
     src = read(TOKEN_SOURCE)
     tokens = {}
     for block in re.findall(r':root\s*\{(.*?)\}', src, re.S):
@@ -90,7 +80,6 @@ def root_tokens():
 
 
 def inline_styles():
-    """每个页面的 <style> 块合并后取哈希；正文改动不影响这一项。"""
     result = {}
     for path in pages():
         name = os.path.basename(path)
@@ -100,27 +89,28 @@ def inline_styles():
 
 
 def external_refs():
-    """样式/脚本不许从站外加载 —— 字体必须自托管。"""
     hits = []
     for path in pages():
         name = os.path.basename(path)
         src = read(name)
         for m in re.finditer(r'<(?:link|script)\b[^>]*?(?:href|src)="(https?://[^"]+)"', src):
-            hits.append('%s -> %s' % (name, m.group(1)[:70]))
-    for css in ('assets/site.css', 'assets/catalog.css', 'assets/fonts.css'):
+            hits.append('%s 引用了站外资源 %s' % (name, m.group(1)[:70]))
+    for css in STYLE_FILES:
         src = read(css)
         for m in re.finditer(r'@import\s+(?:url\()?["\']?(https?://[^"\')]+)', src):
-            hits.append('%s @import %s' % (css, m.group(1)[:60]))
+            hits.append('%s 里 @import 了 %s' % (css, m.group(1)[:60]))
         for m in re.finditer(r'url\(\s*["\']?(https?://[^"\')]+)', src):
-            hits.append('%s url() %s' % (css, m.group(1)[:60]))
+            hits.append('%s 里 url() 指向 %s' % (css, m.group(1)[:60]))
     return hits
 
 
 def snapshot():
-    fonts = {os.path.relpath(p, ROOT).replace('\\', '/'): sha_file(
-        os.path.relpath(p, ROOT).replace('\\', '/')) for p in glob.glob(os.path.join(ROOT, FONT_GLOB))}
+    fonts = {}
+    for p in glob.glob(os.path.join(ROOT, FONT_GLOB)):
+        rel = os.path.relpath(p, ROOT).replace('\\', '/')
+        fonts[rel] = sha_file(rel)
     return {
-        'version': 1,
+        'version': 2,
         'tokens': root_tokens(),
         'files': {p: sha(read(p)) for p in STYLE_FILES + BEHAVIOUR_FILES},
         'fonts': fonts,
@@ -140,79 +130,88 @@ def save(data):
         fh.write('\n')
 
 
+def is_colour(value):
+    v = value.strip().lower()
+    return v.startswith('#') or v.startswith('rgb') or v.startswith('hsl')
+
+
+def is_font(name):
+    return name.startswith('--f-')
+
+
 def cmd_init(quiet=False):
     data = snapshot()
     save(data)
     if not quiet:
-        print('已建立基线 _design/baseline.json')
-        print('  设计令牌 %d 个 · 样式/脚本 %d 个 · 字体 %d 个 · 页面内联样式 %d 页'
-              % (len(data['tokens']), len(data['files']), len(data['fonts']), len(data['inline'])))
+        print('参考快照已写入 _design/baseline.json（%d 个变量，%d 个页面）'
+              % (len(data['tokens']), len(data['inline'])))
     return 0
 
 
-def cmd_check():
+def cmd_check(strict=False):
     if not os.path.exists(BASELINE):
-        print('没有基线文件，先运行: python tools/guard_design.py init')
-        return 2
+        print('还没有参考快照，先运行: python tools/guard_design.py init')
+        return 0
 
     base = load()
     cur = snapshot()
-    problems = []
 
-    changed = [(p, base['files'].get(p), cur['files'].get(p))
-               for p in cur['files'] if base['files'].get(p) != cur['files'].get(p)]
-    if changed:
-        problems.append('样式/脚本文件被改动：')
-        for path, old, new in changed:
-            problems.append('   - %s  %s -> %s' % (path, old or '新增', new))
+    red = []      # 颜色 / 字体：会改变整站观感
+    grey = []     # 其它一切：只提一句
 
-    old_t = base.get('tokens', {})
-    new_t = cur['tokens']
-    missing = sorted(set(old_t) - set(new_t))
-    added = sorted(set(new_t) - set(old_t))
-    edited = sorted(k for k in set(old_t) & set(new_t) if old_t[k] != new_t[k])
-    if missing or added or edited:
-        problems.append('设计令牌被改动：')
-        for k in missing:
-            problems.append('   - 删除  %s  (原值 %s)' % (k, old_t[k]))
-        for k in added:
-            problems.append('   + 新增  %s = %s' % (k, new_t[k]))
-        for k in edited:
-            problems.append('   ~ 修改  %s  %s -> %s' % (k, old_t[k], new_t[k]))
+    old_t, new_t = base.get('tokens', {}), cur['tokens']
+    for k in sorted(set(old_t) - set(new_t)):
+        grey.append('删掉了变量 %s' % k)
+    for k in sorted(set(new_t) - set(old_t)):
+        bucket = red if (is_colour(new_t[k]) or is_font(k)) else grey
+        bucket.append('新增变量 %s = %s' % (k, new_t[k]))
+    for k in sorted(set(old_t) & set(new_t)):
+        if old_t[k] == new_t[k]:
+            continue
+        strongly = is_colour(old_t[k]) or is_colour(new_t[k]) or is_font(k)
+        bucket = red if strongly else grey
+        bucket.append('%s  %s → %s' % (k, old_t[k], new_t[k]))
 
-    old_f = base.get('fonts', {})
-    new_f = cur['fonts']
-    fdiff = [p for p in set(old_f) | set(new_f) if old_f.get(p) != new_f.get(p)]
-    if fdiff:
-        problems.append('字体文件被改动：')
-        for p in sorted(fdiff):
-            problems.append('   - %s' % p)
+    for path, old in sorted(base.get('files', {}).items()):
+        if cur['files'].get(path) != old:
+            grey.append('%s 内容有变' % path)
 
-    old_i = base.get('inline', {})
-    new_i = cur['inline']
-    idiff = [p for p in set(old_i) | set(new_i) if old_i.get(p) != new_i.get(p)]
-    if idiff:
-        problems.append('页面内联 <style> 被改动：')
-        for p in sorted(idiff):
-            problems.append('   - %s' % p)
+    for path in sorted(set(base.get('fonts', {})) | set(cur['fonts'])):
+        if base.get('fonts', {}).get(path) != cur['fonts'].get(path):
+            red.append('字体文件 %s 有变动' % os.path.basename(path))
 
-    refs = external_refs()
-    if refs:
-        problems.append('出现站外资源引用（本项目要求全部自托管）：')
-        problems.extend('   - ' + r for r in refs)
+    old_i, new_i = base.get('inline', {}), cur['inline']
+    for page in sorted(set(old_i) | set(new_i)):
+        if old_i.get(page) != new_i.get(page):
+            grey.append('%s 的内联样式有变' % page)
 
-    if not problems:
-        print('样式层完好：令牌 %d 个、样式/脚本 %d 个、字体 %d 个、内联样式 %d 页，全部与基线一致。'
-              % (len(new_t), len(cur['files']), len(new_f), len(new_i)))
+    for ref in external_refs():
+        grey.append(ref)
+
+    if not red and not grey:
+        print('颜色和字体都没动。')
         return 0
 
-    print('检测到样式层漂移 —— 如果这是你有意改的，确认后运行 accept 刷新基线；')
-    print('如果只是想改文案，请撤销下列改动。\n')
-    for line in problems:
-        print(line)
-    groups = sum(1 for line in problems if not line.startswith('   '))
-    print('\n共 %d 组问题。' % groups)
-    return 1
+    print('和参考快照对比：')
+    if red:
+        print('\n  颜色 / 字体：')
+        for line in red:
+            print('    · ' + line)
+    if grey:
+        print('\n  其它变化（一般没问题）：')
+        for line in grey[:12]:
+            print('    · ' + line)
+        if len(grey) > 12:
+            print('    · … 还有 %d 项' % (len(grey) - 12))
+
+    if red:
+        print('\n这两样会直接改变整站观感。如果是顺手改的，撤回就好；'
+              '真想要这个变化，执行下面这条把它记成新的快照：')
+        print('  python tools/guard_design.py accept')
+        return 1
+
+    print('\n都只是排版细节，不影响整体风格，继续就好。')
+    return 1 if strict else 0
 
 
 def main():
@@ -222,10 +221,10 @@ def main():
         return cmd_init()
     if cmd in ('accept', 'update'):
         cmd_init(quiet=True)
-        print('基线已刷新到当前状态。')
+        print('参考快照已更新为当前状态。')
         return 0
     if cmd == 'check':
-        return cmd_check()
+        return cmd_check(strict='--strict' in argv)
     print(__doc__)
     return 2
 

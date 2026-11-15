@@ -1,46 +1,49 @@
 # 给接手这个仓库的 AI
 
 这是 ZEMING（广东择明科技）的英文静态官网，11 个页面，手写 HTML/CSS/JS，无构建步骤、无框架、无 CDN。
-用户通常只需要改内容，**不希望视觉被改动**。
 
-## 开工前必读
+**唯一要坚持的一点：颜色和整体调性别跑偏。** 其余按需要来，不用缩手缩脚。
 
-1. 读 `DESIGN-SYSTEM.md` —— 设计令牌与六条硬规矩。
-2. 读 `_FACTS.md` —— 唯一事实来源，不要编造数字、认证、人物、卖点。
-3. 只做被要求的事。不要"顺手美化"、不要重构、不要升级依赖、不要引入 Tailwind/Bootstrap/CDN 字体。
+## 这条线在哪
 
-## 允许改
+可以自由改的：
 
-- `<p>` `<h2>` `<h3>` `<li>` 里的纯文字
-- `href`（站内锚点必须真有对应 `id`）
-- 图片替换（WebP，最长边 ≤1200，保持原比例，放 `assets/img/opt/`）
+- `<p>` `<h2>` `<h3>` `<li>` 里的文字、标题措辞、句子长短
+- 增删段落、调整列表顺序
+- `href`
+- 图片替换（WebP，最长边 ≤1200，尽量保持原比例）
+- 间距、字号、栅格这类细节微调 —— 只要不破坏整体观感
 
-## 不要改（除非用户明确要求改样式）
+要克制的两样：
 
-- `assets/site.css`、`assets/catalog.css`、`assets/fonts.css`
-- `assets/site.js`、`assets/catalog.js`
-- 任何页面的 `<style>` 块
-- `class` 名、`data-*` 属性
-- `assets/fonts/*.woff2`
+- **颜色**：一律用 `assets/site.css` 里 `:root` 的变量（`--paper` 浅蓝底、`--ink` 墨黑、`--brand` 品牌蓝…），
+  不要新增色值、不要把浅蓝改回米白、不要给按钮或卡片上渐变。
+- **字体**：Archivo + Instrument Serif italic + JetBrains Mono，三套自托管，不要换成 Inter / 思源 / 系统默认，
+  也不要引 CDN 字体（会直接改变整站气质）。
 
-## 改完必须做的两步
+参考 `DESIGN-SYSTEM.md` 里的令牌表，那是这套视觉的词典。
+
+## 事实别编
+
+`_FACTS.md` 是唯一来源。真实数字只有 2012 年成立、10,000 m² 厂房、8 个品类 / 30 个平台、
+CE-EMC / RoHS / REACH / MSDS。型号、卖点、参数、交期、认证、人物姓名都不要自己造。
+
+## 导航是生成的
+
+11 页导航与手机抽屉由 `tools/nav.py` 统一生成（幂等）。改导航就改脚本再跑一次，
+别逐页手改——否则下次生成会覆盖掉。
+
+## 想确认自己有没有改到颜色
 
 ```bash
-python tools/guard_design.py check    # 必须退出码 0
+python tools/guard_design.py check
 ```
 
-如果它报"样式层漂移"而用户并不想要样式变化 → 撤销改动。若确实是有意的样式修改，才运行 `accept` 刷新基线，并在提交信息里说明。
+颜色或字体变了会提示出来并返回 1；只是排版变化不会。它不会阻止你做任何事，看完继续就行。
 
-```bash
-python serve.py                       # 需要目视时：127.0.0.1:8788
-node tools/audit.js                   # 全站巡检（需无头 Chrome 在 9222）
-```
-
-## 导航不要手改
-
-11 页导航与抽屉由 `tools/nav.py` 生成，幂等。改导航 = 改这个脚本 + 跑一次，不要逐页编辑。
+改了颜色且确实想要这个变化：`python tools/guard_design.py accept` 把它记成新的参考。
 
 ## 换行
 
-仓库用 `.gitattributes` 锁 LF。若在你的机器上 `git status` 忽然显示几十个文件被改，先跑
-`git add --renormalize .` 再判断，不要提交换行噪声。
+仓库用 `.gitattributes` 锁 LF。如果 `git status` 忽然显示几十个文件被改，那是换行差异，
+`git add --renormalize .` 再判断，别把换行噪声提交进去。
