@@ -51,6 +51,8 @@ def nav_links(current):
     # quoting a specific platform is not useful on the contact page itself —
     # there the sheet request should land on the brief form instead
     sheet_href = '#brief' if current == 'contact' else 'contact.html'
+    # same rule for the OEM panel: the quote CTA is the brief form on contact
+    quote_href = sheet_href
 
     def cur(key):
         return ' data-current="page"' if current == key else ''
@@ -91,22 +93,78 @@ def nav_links(current):
 
       <div class="navm" data-navm>
         <a class="navm__btn" href="oem-odm.html" aria-expanded="false" aria-haspopup="true" aria-controls="navm-oem"{cur('oem')}>OEM / ODM {CARET}</a>
-        <div class="navm__panel" id="navm-oem">
-          <p class="navm__lead">Development &amp; manufacturing</p>
-          <a class="navm__item" href="oem-odm.html"><span><b>OEM / ODM overview</b><small>Define &rarr; Produce, seven steps</small></span></a>
-          <a class="navm__item" href="capabilities.html#production"><span><b>Manufacturing</b><small>Production floor</small></span></a>
-          <a class="navm__item" href="capabilities.html#quality"><span><b>Quality control</b><small>Inspection stages</small></span></a>
-          <a class="navm__item" href="brand-studio.html"><span><b>Brand &amp; packaging</b><small>Logo, styling, packaging</small></span></a>
+        <div class="navm__panel navm__panel--mega" id="navm-oem">
+          <div class="mega">
+            <div class="mega__head">
+              <span class="mega__kicker">Development &amp; manufacturing</span>
+              <span class="mega__count">7 steps &middot; 5 changeable areas</span>
+            </div>
+            <div class="mega__body">
+              <div class="mega__left">
+                <div class="mega__cols">
+                  <a class="mega__item" href="oem-odm.html"><span><b>OEM / ODM overview</b><small>Define &rarr; produce</small></span><em>01</em></a>
+                  <a class="mega__item" href="capabilities.html#production"><span><b>Manufacturing</b><small>Four production stages</small></span><em>02</em></a>
+                  <a class="mega__item" href="oem-odm.html#process"><span><b>The seven steps</b><small>One gate per step</small></span><em>03</em></a>
+                  <a class="mega__item" href="capabilities.html#quality"><span><b>Quality control</b><small>Checked before release</small></span><em>04</em></a>
+                  <a class="mega__item" href="oem-odm.html#change"><span><b>What can change</b><small>Five areas per project</small></span><em>05</em></a>
+                  <a class="mega__item" href="capabilities.html#certification"><span><b>Certifications</b><small>CE &middot; RoHS &middot; REACH &middot; MSDS</small></span><em>06</em></a>
+                  <a class="mega__item" href="brand-studio.html"><span><b>Brand &amp; packaging</b><small>Logo, finish, artwork</small></span><em>07</em></a>
+                  <a class="mega__item" href="{quote_href}"><span><b>Start a project</b><small>Three lines, one reply</small></span><em>08</em></a>
+                </div>
+              </div>
+              <a class="mega__feat" href="capabilities.html">
+                <span class="mega__shot"><img src="assets/img/opt/nav-oem.webp" alt="Operators assembling and inspecting speakers at the Foshan plant" width="560" height="373"></span>
+                <span class="mega__meta">
+                  <span class="mega__tag">Inside the plant</span>
+                  <b>Foshan facility</b>
+                  <small>Assembly &middot; QC &middot; final release</small>
+                </span>
+                <span class="mega__go">View capabilities {ARROW}</span>
+              </a>
+            </div>
+            <div class="mega__foot">
+              <a href="capabilities.html">Manufacturing &amp; quality {ARROW}</a>
+              <a href="{quote_href}">Start a project {ARROW}</a>
+            </div>
+          </div>
         </div>
       </div>
 
       <div class="navm" data-navm>
         <a class="navm__btn" href="company.html" aria-expanded="false" aria-haspopup="true" aria-controls="navm-about"{cur('about')}>About Us {CARET}</a>
-        <div class="navm__panel navm__panel--right" id="navm-about">
-          <p class="navm__lead">The company</p>
-          <a class="navm__item" href="company.html"><span><b>Company</b><small>Guangdong Zeming Technology</small></span></a>
-          <a class="navm__item" href="capabilities.html#certification"><span><b>Certifications</b><small>CE / EMC &middot; RoHS &middot; REACH &middot; MSDS</small></span></a>
-          <a class="navm__item" href="contact.html"><span><b>Contact</b><small>Foshan, Guangdong</small></span></a>
+        <div class="navm__panel navm__panel--mega navm__panel--mega-end" id="navm-about">
+          <div class="mega">
+            <div class="mega__head">
+              <span class="mega__kicker">The company</span>
+              <span class="mega__count">Est. 2012 &middot; Foshan, Guangdong</span>
+            </div>
+            <div class="mega__body">
+              <div class="mega__left">
+                <div class="mega__cols mega__cols--rows3">
+                  <a class="mega__item" href="company.html"><span><b>Company profile</b><small>R&amp;D to production</small></span><em>01</em></a>
+                  <a class="mega__item" href="capabilities.html#production"><span><b>Manufacturing</b><small>Assembly, Foshan</small></span><em>02</em></a>
+                  <a class="mega__item" href="company.html#facility"><span><b>Facility &amp; visit</b><small>Jinhai Center, Lecong</small></span><em>03</em></a>
+                  <a class="mega__item" href="news.html"><span><b>Blog / News</b><small>Notes from the floor</small></span><em>04</em></a>
+                  <a class="mega__item" href="capabilities.html#certification"><span><b>Certifications</b><small>CE &middot; RoHS &middot; REACH &middot; MSDS</small></span><em>05</em></a>
+                  <a class="mega__item" href="contact.html"><span><b>Contact</b><small>Foshan, Guangdong</small></span><em>06</em></a>
+                </div>
+                <p class="mega__note">10,000 m&sup2; facility &middot; 8 product categories &middot; global aftermarket</p>
+              </div>
+              <a class="mega__feat" href="company.html">
+                <span class="mega__shot"><img src="assets/img/opt/nav-about.webp" alt="ZEMING engineers working on a driver design and simulations" width="560" height="373"></span>
+                <span class="mega__meta">
+                  <span class="mega__tag">Since 2012</span>
+                  <b>Your brand.</b>
+                  <small>Our manufacturing.</small>
+                </span>
+                <span class="mega__go">Company profile {ARROW}</span>
+              </a>
+            </div>
+            <div class="mega__foot">
+              <a href="company.html">About ZEMING {ARROW}</a>
+              <a href="contact.html">Contact us {ARROW}</a>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -126,6 +184,8 @@ DRAWER = '''<div class="drawer__nav">
     <summary><span>OEM / ODM</span><span class="dacc__n">02</span></summary>
     <div class="dacc__body">
       <a href="oem-odm.html"><span>OEM / ODM overview</span></a>
+      <a href="oem-odm.html#process"><span>The seven steps</span></a>
+      <a href="oem-odm.html#change"><span>What can change</span></a>
       <a href="capabilities.html#production"><span>Manufacturing</span></a>
       <a href="capabilities.html#quality"><span>Quality control</span></a>
       <a href="brand-studio.html"><span>Brand &amp; packaging</span></a>
@@ -134,7 +194,8 @@ DRAWER = '''<div class="drawer__nav">
   <details class="dacc">
     <summary><span>About Us</span><span class="dacc__n">03</span></summary>
     <div class="dacc__body">
-      <a href="company.html"><span>Company</span></a>
+      <a href="company.html"><span>Company profile</span></a>
+      <a href="company.html#facility"><span>Facility &amp; visit</span></a>
       <a href="capabilities.html#certification"><span>Certifications</span></a>
       <a href="contact.html"><span>Contact</span></a>
     </div>

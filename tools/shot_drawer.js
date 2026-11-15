@@ -32,13 +32,15 @@ function req(method, path) {
     await wait(80);
   }
   await wait(600);
-  await ev(`document.querySelector('.dacc summary').click();1`);
+  const IDX = +process.argv[2] || 0;   // 0 products, 1 oem, 2 about
+  await ev(`document.querySelectorAll('.dacc summary')[${IDX}].click();1`);
   await wait(500);
   const box = await ev(`(()=>{const d=document.querySelector('.drawer');const r=d.getBoundingClientRect();return Math.round(r.width)+'w overflow='+(document.documentElement.scrollWidth-innerWidth)})()`);
   console.log('drawer', box);
   const s = await send('Page.captureScreenshot', { format: 'jpeg', quality: 92 });
-  fs.writeFileSync('shots/drawer-390.jpg', Buffer.from(s.data, 'base64'));
-  console.log('-> shots/drawer-390.jpg');
+  const out = 'shots/drawer-390-' + (['products','oem','about'][IDX] || IDX) + '.jpg';
+  fs.writeFileSync(out, Buffer.from(s.data, 'base64'));
+  console.log('->', out);
   await req('GET', '/json/close/' + t.id);
   process.exit(0);
 })();

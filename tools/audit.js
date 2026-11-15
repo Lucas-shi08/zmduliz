@@ -59,24 +59,33 @@ async function run() {
         const fab=document.querySelectorAll('.wafab');
         let fabBox=null;
         if (fab.length) { const r=fab[0].getBoundingClientRect(); fabBox=[Math.round(r.x),Math.round(r.y),Math.round(r.width),Math.round(r.height)]; }
-        return JSON.stringify({img, over: de.scrollWidth-innerWidth, mega, links, fab:fab.length, fabBox, panels: document.querySelectorAll('.navm__panel').length});
+        return JSON.stringify({img, over: de.scrollWidth-innerWidth, mega, items: document.querySelectorAll('.mega__item').length, links, fab:fab.length, fabBox, panels: document.querySelectorAll('.navm__panel').length});
       })()`));
       let nav = 'n/a';
       if (W >= 1000) {
-        const b = JSON.parse(await ev(`(()=>{const b=document.querySelector('[data-navm] .navm__btn');const r=b.getBoundingClientRect();return JSON.stringify({x:Math.round(r.x+r.width/2),y:Math.round(r.y+r.height/2)})})()`));
-        await send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: b.x, y: b.y, buttons: 0 });
-        await wait(320);
-        const open = await ev(`document.querySelector('.navm__panel--mega').getAttribute('data-open')`);
-        const box = await ev(`(()=>{const r=document.querySelector('.navm__panel--mega').getBoundingClientRect();return Math.round(r.left)+','+Math.round(r.right)+' of '+innerWidth})()`);
-        // Esc 在面板内按下
-        await ev(`document.querySelector('.mega__item').focus();1`);
-        await send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });
-        await wait(260);
-        const afterEsc = await ev(`document.querySelector('.navm__panel--mega').getAttribute('data-open')`);
-        const focusBack = await ev(`document.activeElement.className`);
-        nav = `open=${open} esc=${afterEsc === null ? 'closed' : 'STILL-OPEN'} focus=${focusBack} box=${box}`;
-        if (open !== 'true' || afterEsc !== null) bad.push(`${W} ${P} nav ${nav}`);
-        await send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });
+        // all three mega panels: hover each trigger, then check its box stays on screen
+        const boxes = [];
+        const fails = [];
+        for (let mi = 0; mi < 3; mi++) {
+          const b = JSON.parse(await ev(`(()=>{const b=document.querySelectorAll('[data-navm] .navm__btn')[${mi}];const r=b.getBoundingClientRect();return JSON.stringify({x:Math.round(r.x+r.width/2),y:Math.round(r.y+r.height/2)})})()`));
+          await send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: b.x, y: b.y, buttons: 0 });
+          await wait(340);
+          const g = JSON.parse(await ev(`(()=>{const p=document.querySelectorAll('.navm__panel--mega')[${mi}];const r=p.getBoundingClientRect();return JSON.stringify({open:p.getAttribute('data-open'),l:Math.round(r.left),r:Math.round(r.right),h:Math.round(r.height),feat:!!p.querySelector('.mega__feat')&&getComputedStyle(p.querySelector('.mega__feat')).display!=='none'})})()`));
+          boxes.push(`${mi}:${g.l}-${g.r}x${g.h}${g.feat?'':'(no-feat)'}`);
+          if (g.open !== 'true') fails.push('mega' + mi + ' not-open');
+          if (g.l < 0 || g.r > W) fails.push('mega' + mi + ' out-of-view ' + g.l + '-' + g.r + '/' + W);
+          if (mi === 0) {
+            await ev(`document.querySelectorAll('.navm__panel--mega')[0].querySelector('.mega__item').focus();1`);
+            await send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });
+            await wait(240);
+            const afterEsc = await ev(`document.querySelector('.navm__panel--mega').getAttribute('data-open')`);
+            if (afterEsc !== null) fails.push('esc did-not-close');
+            await send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });
+            await wait(160);
+          }
+        }
+        nav = boxes.join(' ');
+        fails.forEach(f => bad.push(`${W} ${P} ${f}`));
       } else {
         const hidden = await ev(`getComputedStyle(document.querySelector('.navm')).display`);
         nav = `navm display=${hidden}`;
@@ -86,7 +95,8 @@ async function run() {
       const flag = [];
       if (r.img.length) { flag.push('MISSING-IMG'); bad.push(`${W} ${P} img ${r.img.join('|')}`); }
       if (r.over > 0) { flag.push('OVERFLOW+' + r.over); bad.push(`${W} ${P} overflow ${r.over}`); }
-      if (r.mega !== 1) { flag.push('MEGA=' + r.mega); bad.push(`${W} ${P} mega ${r.mega}`); }
+      if (r.mega !== 3) { flag.push('MEGA=' + r.mega); bad.push(`${W} ${P} mega ${r.mega}`); }
+      if (r.items !== 22) { flag.push('ITEMS=' + r.items); bad.push(`${W} ${P} mega items ${r.items}`); }
       if (wsErrs.length) { flag.push('JS-ERR'); bad.push(`${W} ${P} js ${wsErrs[0]}`); }
       if (r.fab !== 1) { flag.push('FAB=' + r.fab); bad.push(`${W} ${P} fab count ${r.fab}`); }
       else {

@@ -5,6 +5,7 @@ const W = +process.argv[2] || 1440;
 const OUT = process.argv[3] || 'shots/mega-1440.jpg';
 const PAGE = process.argv[4] || 'index.html';
 const SCROLL = +process.argv[5] || 0;
+const MENU = +process.argv[6] || 0;   // 0 products, 1 oem, 2 about
 
 http.request({ host: '127.0.0.1', port: 9222, path: '/json/new?about:blank', method: 'PUT' }, r => {
   let d = ''; r.on('data', c => d += c);
@@ -34,17 +35,17 @@ http.request({ host: '127.0.0.1', port: 9222, path: '/json/new?about:blank', met
         if (SCROLL) { await ev('window.scrollTo(0,' + SCROLL + ');1'); await wait(700); }
 
         // 真实鼠标移入 Products 按钮，触发 mouseenter
-        const btn = JSON.parse(await ev(`(()=>{const b=document.querySelector('[data-navm] .navm__btn');const r=b.getBoundingClientRect();return JSON.stringify({x:Math.round(r.x+r.width/2),y:Math.round(r.y+r.height/2)})})()`));
+        const btn = JSON.parse(await ev(`(()=>{const b=document.querySelectorAll('[data-navm] .navm__btn')[${MENU}];const r=b.getBoundingClientRect();return JSON.stringify({x:Math.round(r.x+r.width/2),y:Math.round(r.y+r.height/2)})})()`));
         if (!btn) { console.log('no nav'); process.exit(0); }
         await send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: btn.x, y: btn.y, buttons: 0 });
         await wait(520);
 
         const geo = await ev(`(()=>{
-          const p=document.querySelector('.navm__panel--mega');
+          const p=document.querySelectorAll('.navm__panel--mega')[${MENU}];
           if(!p) return JSON.stringify({none:true});
           const r=p.getBoundingClientRect();
           const cs=getComputedStyle(p);
-          const feat=document.querySelector('.mega__feat');
+          const feat=p.querySelector('.mega__feat');
           const fs_=feat?getComputedStyle(feat):null;
           const items=[...document.querySelectorAll('.mega__item')].map(a=>a.getBoundingClientRect());
           return JSON.stringify({
@@ -62,7 +63,7 @@ http.request({ host: '127.0.0.1', port: 9222, path: '/json/new?about:blank', met
         const H = g.panel ? Math.min(760, g.panel.y + g.panel.h + 40) : 200;
         const s = await send('Page.captureScreenshot', {
           format: 'jpeg', quality: 92, captureBeyondViewport: true,
-          clip: { x: 0, y: 0, width: Math.min(W, g.docScrollW || W), height: H, scale: 1 }
+          clip: { x: 0, y: SCROLL || 0, width: Math.min(W, g.docScrollW || W), height: H, scale: 1 }
         });
         fs.writeFileSync(OUT, Buffer.from(s.data, 'base64'));
         console.log('->', OUT);
